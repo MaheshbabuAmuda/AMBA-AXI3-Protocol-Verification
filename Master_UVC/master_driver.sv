@@ -6,7 +6,7 @@ class master_driver extends uvm_driver #(Axi3_trans);
 
         master_agent_config m_cfg;
 
-        Axi3_trans xtn;
+        Axi3_trans xtn; 
         Axi3_trans q1[$], q2[$], q3[$], q4[$], q5[$];
 
         Axi3_trans write_outstanding[int];
