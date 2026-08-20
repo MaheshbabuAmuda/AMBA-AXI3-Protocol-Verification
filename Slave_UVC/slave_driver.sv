@@ -134,7 +134,8 @@ task slave_driver::drive_awaddr(Axi3_trans xtn_wr);
         q2.push_back(xtn_wr);
 
         $display("end of slave awaddr channel");
-endtask
+        
+endtask: drive_awaddr
 
 //===========================================================
     // W channel
@@ -163,7 +164,8 @@ task slave_driver::drive_wdata(Axi3_trans xtn_wr);
                                 @(vif.slv_drv_cb);
                 end
         $display("end of slave wdata channel");
-endtask
+        
+endtask: drive_wdata
 
 //===========================================================
     // B channel
@@ -187,7 +189,8 @@ task slave_driver::drive_bresp(Axi3_trans xtn_wr);
         @(vif.slv_drv_cb);
 
         $display("end of slave bresp channel");
-endtask
+        
+endtask: drive_bresp
 
 //===========================================================
     // AR channel
@@ -219,7 +222,8 @@ task slave_driver::drive_raddr(Axi3_trans xtn_rd);
         q3.push_back(xtn_rd);
 
         $display("end of slave raddr channel");
-endtask
+        
+endtask: drive_raddr
           
 //===========================================================
     // R channel
@@ -257,6 +261,6 @@ task slave_driver::drive_rdata(Axi3_trans xtn_rd);
 
         $display("end of slave rdata channel");
 
-endtask
+endtask: drive_rdata
                 
 
