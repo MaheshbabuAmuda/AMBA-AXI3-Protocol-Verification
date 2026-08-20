@@ -15,7 +15,7 @@ endclass
 
 function master_agent::new(string name = "master_agent", uvm_component parent);
         super.new(name, parent);
-endfunction
+endfunction: new
 
 function void master_agent::build_phase(uvm_phase phase);
         super.build_phase(phase);
@@ -32,7 +32,7 @@ function void master_agent::build_phase(uvm_phase phase);
         seqrh = master_sequencer::type_id::create("seqrh", this);
 
         end
-endfunction
+endfunction: build_phase
 
 function void master_agent::connect_phase(uvm_phase phase);
         super.connect_phase(phase);
@@ -43,4 +43,4 @@ function void master_agent::connect_phase(uvm_phase phase);
         drvh.seq_item_port.connect(seqrh.seq_item_export);
 
         end
-endfunction
+endfunction: connect_phase
