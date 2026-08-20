@@ -109,7 +109,7 @@ task master_driver::drive(Axi3_trans xtn);
                         drive_bresp(q3.pop_front());
                         sem_Wrc.put(1);
                 end
-        join_any
+  /*      join_any
   end
 
   else begin
@@ -117,7 +117,8 @@ task master_driver::drive(Axi3_trans xtn);
         q4.push_back(xtn);
         q5.push_back(xtn);
 
-        fork
+        fork*/
+                
                 begin
                         //read address channel:
                         sem_Rac.get(1);
@@ -135,7 +136,7 @@ task master_driver::drive(Axi3_trans xtn);
                         sem_Rdc.put(1);
                 end
         join_any
-  end
+//  end
 
 endtask
 
@@ -147,20 +148,31 @@ task master_driver::drive_awaddr(Axi3_trans xtn);
 
         $display("MASTER: Driving WRITE ADDRESS");
 
-        vif.mstr_drv_cb.AWVALID <=1;
+        @(vif.mstr_drv_cb);
+         begin
 
+        vif.mstr_drv_cb.AWVALID <=1;
         vif.mstr_drv_cb.AWADDR <= xtn.AWADDR;
         vif.mstr_drv_cb.AWSIZE <= xtn.AWSIZE;
+        vif.mstr_drv_cb.AWID <= xtn.AWID;
         vif.mstr_drv_cb.AWLEN <= xtn.AWLEN;
         vif.mstr_drv_cb.AWBURST <= xtn.AWBURST;
-        vif.mstr_drv_cb.AWID <= xtn.AWID;
 
         do begin
                 @(vif.mstr_drv_cb);
         end
         while(!vif.mstr_drv_cb.AWREADY); // Wait for AW handshake
+
         vif.mstr_drv_cb.AWVALID <= 0;
 
+        repeat($urandom_range(1,5))
+                @(vif.mstr_drv_cb);
+
+        end
+
+        $display("MASTER Driver: End of WRITE ADDRESS");
+
+/*
 //===========================================================
     // Store transaction in outstanding WRITE table
     // AWID -> transaction
@@ -187,8 +199,9 @@ task master_driver::drive_awaddr(Axi3_trans xtn);
         repeat($urandom_range(1,5))
                 @(vif.mstr_drv_cb);
 
-        $display("MASTER Driver: End of WRITE ADDRESS");
-endtask
+        $display("MASTER Driver: End of WRITE ADDRESS"); */
+        
+endtask: drive_awaddr
 
 //=======================================================
         // Drive W channel
@@ -196,11 +209,12 @@ endtask
 
 task master_driver::drive_wdata(Axi3_trans xtn);
 
+        int i;
 
         $display("MASTER: Driving WRITE DATA");
 
-    for (int i = 0; i < xtn.WDATA.size(); i++)
-      begin
+     foreach(xtn.WDATA[i])
+        begin
 
         vif.mstr_drv_cb.WVALID <= 1;
         vif.mstr_drv_cb.WDATA  <= xtn.WDATA[i];
@@ -227,7 +241,8 @@ task master_driver::drive_wdata(Axi3_trans xtn);
 
     $display("MASTER Driver: End of WRITE DATA");
 
-endtask
+endtask: drive_wdata
+
 
 //=======================================================
         // Drive B channel
@@ -235,15 +250,21 @@ endtask
 
 task master_driver::drive_bresp(Axi3_trans xtn);
 
+
         $display("MASTER: Waiting for WRITE RESPONSE");
 
         vif.mstr_drv_cb.BREADY <= 1;
+        //vif.mstr_drv_cb.BID <= xtn.BID;
 
         do begin
            @(vif.mstr_drv_cb);
         end
         while (!vif.mstr_drv_cb.BVALID);
+        
+// Deassert BREADY
+        vif.mstr_drv_cb.BREADY <= 0;
 
+/*
  // Capture BID
 
         bid = vif.mstr_drv_cb.BID;
@@ -275,13 +296,14 @@ task master_driver::drive_bresp(Axi3_trans xtn);
     end
 
         sem_wr_table.put(1);
+*/
 
         repeat($urandom_range(1,5))
         @(vif.mstr_drv_cb);
 
         $display("MASTER-Driver: End WRITE RESPONSE");
 
-endtask
+endtask: drive_bresp
 
 //===========================================================
     // Drive AR channel
@@ -290,12 +312,15 @@ task master_driver::drive_raddr(Axi3_trans xtn);
 
         $display("MASTER: Driving READ ADDRESS");
 
+        repeat ($urandom_range(1,5))
+             @(vif.mstr_drv_cb);
+
         vif.mstr_drv_cb.ARVALID <=1;
         vif.mstr_drv_cb.ARADDR <= xtn.ARADDR;
         vif.mstr_drv_cb.ARSIZE <= xtn.ARSIZE;
+        vif.mstr_drv_cb.ARID <= xtn.ARID;
         vif.mstr_drv_cb.ARLEN <= xtn.ARLEN;
         vif.mstr_drv_cb.ARBURST <= xtn.ARBURST;
-        vif.mstr_drv_cb.ARID <= xtn.ARID;
 
         do begin
         @(vif.mstr_drv_cb);
@@ -303,6 +328,7 @@ task master_driver::drive_raddr(Axi3_trans xtn);
         while (!vif.mstr_drv_cb.ARREADY);
 
         vif.mstr_drv_cb.ARVALID <= 0;
+/*
 // Store transaction
 // ARID -> transaction
         sem_rd_table.get(1);
@@ -320,13 +346,14 @@ task master_driver::drive_raddr(Axi3_trans xtn);
     end
 
         sem_rd_table.put(1);
+*/
 
     repeat ($urandom_range(1,5))
         @(vif.mstr_drv_cb);
 
     $display("MASTER: End READ ADDRESS");
 
-endtask
+endtask: drive_raddr
           
 //===========================================================
     // Drive AR channel
@@ -334,25 +361,26 @@ endtask
 
   task master_driver::drive_rdata(Axi3_trans xtn);
 
-        int rid;
-        int beat_count = 0;
-        $display("MASTER: Waiting for READ DATA");
+           $display("MASTER: Waiting for READ DATA");
 
-    forever begin
-
-/*      for(int i = 0; i < (xtn.ARLEN+1); i++)  ///ARLEN is the index of the last beat, not the number of beats.
+        for(int i = 0; i <= (xtn.ARLEN); i++)  ///ARLEN is the index of the last beat, not the number of beats.
          begin
                 vif.mstr_drv_cb.RREADY <=1;
-                @(vif.mstr_drv_cb);
-                wait(vif.mstr_drv_cb.RVALID);
 
+                do begin
+                    @(vif.mstr_drv_cb);
+                end
+                while (!vif.mstr_drv_cb.RVALID);
+                // RVALID && RREADY handshake has occurred
+                //RREADY deasserted
                 vif.mstr_drv_cb.RREADY <=0;
 
-                repeat($urandom_range(1,5))
-                @(vif.mstr_drv_cb);
-         end
-*/
-         vif.mstr_drv_cb.RREADY <= 1;
+/*
+        int rid;
+        int beat_count = 0;
+
+    forever begin
+        vif.mstr_drv_cb.RREADY <= 1;
         do begin
             @(vif.mstr_drv_cb);
         end
@@ -374,7 +402,7 @@ endtask
             sem_rd_table.get(1);
 
             if (!read_outstanding.exists(rid)) begin
-                `uvm_error("MASTER_DRIVER",$sformatf("Received RID=%0d but no matching outstanding READ exists",rid))
+                    `uvm_error("MASTER_DRIVER",$sformatf("Received RID=%0d but no matching outstanding READ exists", rid))
             end
             else begin
                 `uvm_info("OUTSTANDING",$sformatf("READ transaction completed: RID=%0d, beats=%0d",rid,beat_count),UVM_MEDIUM);
@@ -384,6 +412,7 @@ endtask
             sem_rd_table.put(1);
             break;
         end
+*/
         // Delay before next R beat
         repeat ($urandom_range(1,5))
             @(vif.mstr_drv_cb);
@@ -391,4 +420,4 @@ endtask
 
     $display("MASTER: End READ DATA");
 
-endtask
+endtask: drive_rdata
