@@ -8,27 +8,27 @@ class master_monitor extends uvm_monitor;
 
         uvm_analysis_port #(Axi3_trans) monitor_port;
 
-        Axi3_trans xtn_wr, xtn_rd;
+        Axi3_trans xtn1, xtn_wr, xtn_rd;
 
         Axi3_trans q1[$], q2[$], q3[$];
+        
         // Outstanding transaction tables
-        Axi3_trans write_outstanding[int];
-        Axi3_trans read_outstanding[int];
+        /*Axi3_trans write_outstanding[int];
+        Axi3_trans read_outstanding[int];*/
 
         semaphore sem_Wac = new(1); //write addr channel
         semaphore sem_Wdc = new(1); //write data channel
         semaphore sem_Wrc = new(1); //write resp channel
         semaphore sem_Wddc = new(); //write data dependency channel
         semaphore sem_Wrdc = new(); //write resp dependency channel
-A
 
         semaphore sem_Rac = new(1); //read addr channel
         semaphore sem_Rdc = new(1); //read data channel
         semaphore sem_Rddc = new(); //read data dependency channel
 
             // Semaphores for outstanding tables
-                semaphore sem_wr_table = new(1);
-                semaphore sem_rd_table = new(1);
+               /* semaphore sem_wr_table = new(1);
+                semaphore sem_rd_table = new(1);*/
 
         extern function new(string name = "master_monitor", uvm_component parent);
         extern function void build_phase(uvm_phase phase);
@@ -43,8 +43,6 @@ A
         extern task collect_raddr(Axi3_trans xtn_rd);
         extern task collect_rdata(Axi3_trans xtn_rd);
 
-//      extern function void report_phase(uvm_phase phase);
-
 endclass
 
 function master_monitor::new(string name = "master_monitor", uvm_component parent);
@@ -52,7 +50,7 @@ function master_monitor::new(string name = "master_monitor", uvm_component paren
 
         monitor_port = new("monitor_port", this);
 
-endfunction
+endfunction: new
 
 function void  master_monitor::build_phase(uvm_phase phase);
         super.build_phase(phase);
@@ -60,14 +58,14 @@ function void  master_monitor::build_phase(uvm_phase phase);
         if(!uvm_config_db #(master_agent_config)::get(this, "", "master_agent_config", m_cfg))
         `uvm_fatal("MASTER_CONFIG", "cannot get(), Have u set() master_agent_config ?")
 
-endfunction
+endfunction: build_phase
 
 function void master_monitor::connect_phase(uvm_phase phase);
         super.connect_phase(phase);
 
         vif = m_cfg.vif;
 
-endfunction
+endfunction: connect_phase
 
 task master_monitor::run_phase(uvm_phase phase);
         super.run_phase(phase);
@@ -76,7 +74,7 @@ task master_monitor::run_phase(uvm_phase phase);
                 mstr_collect();
         end
 
-endtask
+endtask: run_phase
 
 task master_monitor::mstr_collect();
 
@@ -120,13 +118,18 @@ task master_monitor::mstr_collect();
                         sem_Rdc.put(1);
                 end
         join_any
-endtask
+        
+endtask: mstr_collect
+
+//===========================================================
+    //Monitor AW channel
+//===========================================================
 
 task master_monitor::collect_awaddr(Axi3_trans xtn_wr);
 
-        int awid;
+       // int awid;
 
-    $display("Monitoring master AWADDR channel");
+        $display("Monitoring master AWADDR channel");
 
     // Samples signals exactly at the clocking block event.
     // If the condition is false, it ignores that clock edge and waits for the next one.
@@ -134,17 +137,17 @@ task master_monitor::collect_awaddr(Axi3_trans xtn_wr);
         @(vif.mstr_mon_cb iff (vif.mstr_mon_cb.AWVALID && vif.mstr_mon_cb.AWREADY));
         //wait( (vif.mstr_mon_cb.AWVALID) && (vif.mstr_mon_cb.AWREADY));
 
-    xtn_wr.AWVALID = vif.mstr_mon_cb.AWVALID;
-    xtn_wr.AWADDR  = vif.mstr_mon_cb.AWADDR;
-    xtn_wr.AWSIZE  = vif.mstr_mon_cb.AWSIZE;
-    xtn_wr.AWID    = vif.mstr_mon_cb.AWID;
-    xtn_wr.AWLEN   = vif.mstr_mon_cb.AWLEN;
-    xtn_wr.AWBURST = vif.mstr_mon_cb.AWBURST;
-
-        awid = xtn_wr.AWID;
-
-    q1.push_back(xtn_wr);
-    q2.push_back(xtn_wr);
+        xtn_wr.AWVALID = vif.mstr_mon_cb.AWVALID;
+        xtn_wr.AWADDR  = vif.mstr_mon_cb.AWADDR;
+        xtn_wr.AWSIZE  = vif.mstr_mon_cb.AWSIZE;
+        xtn_wr.AWID    = vif.mstr_mon_cb.AWID;
+        xtn_wr.AWLEN   = vif.mstr_mon_cb.AWLEN;
+        xtn_wr.AWBURST = vif.mstr_mon_cb.AWBURST;
+        
+        q1.push_back(xtn_wr);
+        q2.push_back(xtn_wr);
+        
+  /*    awid = xtn_wr.AWID;
     // Store in outstanding WRITE table
     // AWID -> transaction
     sem_wr_table.get(1);
@@ -158,16 +161,17 @@ task master_monitor::collect_awaddr(Axi3_trans xtn_wr);
     end
 
     sem_wr_table.put(1);
-
-    //monitor_port.write(xtn_wr);
-
-    //m_cfg.mstr_xtn_cnt++;
-
-    `uvm_info(get_type_name(),$sformatf("From Mstr_Mon: Collected AWADDR:\n%s", xtn_wr.sprint()), UVM_MEDIUM)
+    */
+        
+        `uvm_info(get_type_name(),$sformatf("From Mstr_Mon: Collected AWADDR:\n%s", xtn_wr.sprint()), UVM_MEDIUM)
 
     $display("End of master monitor AWADDR channel");
 
-endtask
+endtask: collect_awaddr
+
+//===========================================================
+    //Monitor W channel
+//===========================================================
 
 task master_monitor::collect_wdata(Axi3_trans xtn_wr);
 
@@ -175,10 +179,18 @@ task master_monitor::collect_wdata(Axi3_trans xtn_wr);
 
     $display("Monitoring master WDATA channel");
 
+    xtn1 = Axi3_trans::type_id::create("xtn1");
+
+    // Copy AW transaction
+    xtn1 = xtn_wr;
+
+    // Calculate write addresses
+    xtn1.cal_addr();
+
     xtn_wr.WDATA = new[xtn_wr.AWLEN + 1];
     xtn_wr.WSTRB = new[xtn_wr.AWLEN + 1];
 
-    for (i = 0; i <= xtn_wr.AWLEN; i++) begin
+     foreach (xtn1.WDATA[i]) begin
 
         @(vif.mstr_mon_cb iff (vif.mstr_mon_cb.WVALID && vif.mstr_mon_cb.WREADY));
         //iff -  Wait for a clocking block event and proceed only when both WVALID and WREADY
@@ -191,10 +203,6 @@ task master_monitor::collect_wdata(Axi3_trans xtn_wr);
             xtn_wr.WLAST = vif.mstr_mon_cb.WLAST;
 
     end
-
-    //monitor_port.write(xtn_wr);
-
-    //m_cfg.mstr_xtn_cnt++;
 
     `uvm_info(get_type_name(),$sformatf("From Mstr_Mon: Collected WDATA:\n%s", xtn_wr.sprint()),
               UVM_MEDIUM)
