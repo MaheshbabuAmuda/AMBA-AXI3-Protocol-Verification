@@ -6,7 +6,7 @@ class Axi3_trans extends uvm_sequence_item;
 bit RESETn;  // global signal
 
 // ============================================================
-               // WRITE ADDRESS CHANNEL
+            // WRITE ADDRESS CHANNEL (AW)
 // ============================================================
 
 rand bit [3:0]  AWID;
@@ -21,19 +21,18 @@ logic AWREADY; //signal driven by slave to handle (X/Z)
 bit AWVALID; //handshake signal indicates address control is present
 
 // ============================================================
-               // WRITE DATA CHANNEL
+               // WRITE DATA CHANNEL (W)
 // ============================================================
 
 rand bit [31:0] WDATA[];
 rand bit [3:0]  WID;
- // WSTRB is generated from address and transfer size
-bit [3:0]  WSTRB[];
+bit [3:0]  WSTRB[]; // WSTRB is generated from address and transfer size
 bit  WLAST;
 bit  WVALID;
 logic WREADY;
 
 // ============================================================
-            // WRITE RESPONSE CHANNEL
+              // WRITE RESPONSE CHANNEL (B)
 // ============================================================
 
 rand bit [3:0] BID;
@@ -42,7 +41,7 @@ logic BVALID;
 bit BREADY;
 
 // ============================================================
-            // READ ADDRESS CHANNEL
+             // READ ADDRESS CHANNEL (AR)
 // ============================================================
 
 rand bit [3:0] ARID;
@@ -55,7 +54,7 @@ logic ARREADY;
 bit ARVALID;
 
 // ============================================================
-            // READ DATA CHANNEL
+              // READ DATA CHANNEL (R)
 // ============================================================
 rand bit [3:0] RID;
 rand logic [31:0] RDATA[];
@@ -64,6 +63,9 @@ logic RLAST;
 
 bit RREADY;
 logic RVALID;
+
+ //factory registration
+ 
         `uvm_object_utils(Axi3_trans)
 /*
         `uvm_object_utils_begin(Axi3_trans)
@@ -116,7 +118,6 @@ constraint rdata_c2 { RDATA.size() == (ARLEN+1); }
 
 constraint awb {AWBURST dist{ 2'b00 :=10, 2'b01 :=10, 2'b10 :=10};}
 
-
 constraint arb {ARBURST dist{ 2'b00 :=10, 2'b01 :=10, 2'b10 :=10};}
 
 //ID constraint::
@@ -128,7 +129,6 @@ constraint read_id { RID == ARID; }
 //transfer size distribution:
 
 constraint awsize { AWSIZE dist { 0:=10, 1:=10, 2:=10}; }
-
 
 constraint arsize { ARSIZE dist { 0:=10, 1:=10, 2:=10}; }
 
@@ -161,9 +161,9 @@ constraint c1 {awaddr < 4096;}
 constraint c2 {araddr < 4096;}
 
 extern function new(string name = "Axi3_trans");
- extern function void do_print(uvm_printer printer);
- extern function bit do_compare(uvm_object rhs, uvm_comparer comparer);
 extern function void post_randomize();
+extern function void do_print(uvm_printer printer);
+extern function bit do_compare(uvm_object rhs, uvm_comparer comparer);
 
 extern function void cal_addr();
 extern function void cal_raddr();
@@ -173,7 +173,7 @@ endclass: Axi3_trans
 
 function Axi3_trans::new(string name = "Axi3_trans");
         super.new(name);
-endfunction
+endfunction: new
 
 function void Axi3_trans::post_randomize();
 
@@ -182,7 +182,6 @@ function void Axi3_trans::post_randomize();
         start_waddr = AWADDR;//store the orginal wr address
         WSTRB = new[AWLEN+1];//array
 
-
         no_of_rbytes = 2**ARSIZE;
         aligned_raddr = (int'(ARADDR/no_of_rbytes))*no_of_rbytes;
         start_raddr = ARADDR;
@@ -190,25 +189,26 @@ function void Axi3_trans::post_randomize();
         cal_addr();
         strb_cal();
         cal_raddr();
+ 
 foreach (waddr[i]) begin
     `uvm_info(get_type_name(),
         $sformatf("Beat=%0d Address=0x%0h", i, waddr[i]),
         UVM_LOW)
 end
-endfunction
+ 
+endfunction: post_randomize
 
 function void Axi3_trans::cal_addr();
 
     bit wb = 0; // Is wrap happened?
 
     int burst_len = AWLEN + 1;
-    int wrap_boundary = (int'(AWADDR / (no_of_wbytes * burst_len))) *  ///wb = (start address /burst size ) * burst size
-                        (no_of_wbytes * burst_len);
+    int wrap_boundary = (int'(AWADDR / (no_of_wbytes * burst_len))) *  (no_of_wbytes * burst_len);
+              ///wb = (start address /burst size ) * burst size
     int addr_n = wrap_boundary + (no_of_wbytes * burst_len);
 
     waddr = new[AWLEN + 1];
     waddr[0] = AWADDR;
-
 
     for (int i = 2; i < (burst_len + 1); i++)
     begin
@@ -248,7 +248,7 @@ function void Axi3_trans::cal_addr();
 
     end
 
-endfunction
+endfunction: cal_addr
 
 function void Axi3_trans::strb_cal();
 
@@ -256,8 +256,7 @@ function void Axi3_trans::strb_cal();
     int lower_byte_lane, upper_byte_lane;
 
     int lower_byte_lane_0 = start_waddr - ((int'(start_waddr/data_bus_bytes)) * data_bus_bytes);
-    int upper_byte_lane_0 = (aligned_waddr + (no_of_wbytes - 1)) -
-                            ((int'(start_waddr/data_bus_bytes)) * data_bus_bytes);
+    int upper_byte_lane_0 = (aligned_waddr + (no_of_wbytes - 1)) - ((int'(start_waddr/data_bus_bytes)) * data_bus_bytes);
 
     for (int j = lower_byte_lane_0; j <= upper_byte_lane_0; j++)
     begin
@@ -275,7 +274,7 @@ function void Axi3_trans::strb_cal();
             WSTRB[i][j] = 1;
     end
 
-endfunction
+endfunction: strb_cal
 
 function void Axi3_trans::cal_raddr();
 
@@ -323,16 +322,14 @@ function void Axi3_trans::cal_raddr();
 
     end
 
-endfunction
-
-
+endfunction: cal_raddr
 
 function void Axi3_trans::do_print(uvm_printer printer);
 
     super.do_print(printer);
 
     // Write Address Channel
-    //           field name    bitstream value    size    radix for printing
+    //               field name  bitstream value  size  radix for printing
 
     printer.print_field("AWID",    this.AWID,     4, UVM_DEC);
     printer.print_field("AWADDR",  this.AWADDR,  32, UVM_HEX);
