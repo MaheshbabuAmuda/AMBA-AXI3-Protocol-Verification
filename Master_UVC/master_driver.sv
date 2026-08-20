@@ -9,8 +9,8 @@ class master_driver extends uvm_driver #(Axi3_trans);
         Axi3_trans xtn; 
         Axi3_trans q1[$], q2[$], q3[$], q4[$], q5[$];
 
-        Axi3_trans write_outstanding[int];
-        Axi3_trans read_outstanding[int];
+       // Axi3_trans write_outstanding[int];
+       //Axi3_trans read_outstanding[int];
 
         semaphore sem_Wac = new(1); //write addr channel
         semaphore sem_Wdc = new(1); //write data channel
@@ -23,9 +23,8 @@ class master_driver extends uvm_driver #(Axi3_trans);
         semaphore sem_Rddc = new(); //read data dependency channel
 
           // Semaphore for outstanding tables
-
-            semaphore sem_wr_table = new(1);
-            semaphore sem_rd_table = new(1);
+            /*semaphore sem_wr_table = new(1);
+            semaphore sem_rd_table = new(1); */
 
         extern function new(string name = "master_driver", uvm_component parent);
         extern function void build_phase(uvm_phase phase);
@@ -41,23 +40,25 @@ class master_driver extends uvm_driver #(Axi3_trans);
         extern task drive_rdata(Axi3_trans xtn);
 
 endclass
+                
 function master_driver::new(string name = "master_driver", uvm_component parent);
         super.new(name,parent);
-endfunction
+endfunction: new
 
 function void master_driver::build_phase(uvm_phase phase);
         super.build_phase(phase);
 
         if(!uvm_config_db #(master_agent_config)::get(this, "" , "master_agent_config" , m_cfg ))
         `uvm_fatal("MASTER_CONFIG", "cannot get(), HAve u set () master_agent_config ?")
-endfunction
+                
+endfunction: build_phase
 
 function void master_driver::connect_phase(uvm_phase phase);
         super.connect_phase(phase);
 
         vif = m_cfg.vif;
 
-endfunction
+endfunction: connect_phase
 
 task master_driver::run_phase(uvm_phase phase);
         super.run_phase(phase);
@@ -66,19 +67,20 @@ task master_driver::run_phase(uvm_phase phase);
                                 seq_item_port.get_next_item(req);
                                 req.print();
                                 drive(req);
-                        //      #5000;
                                 seq_item_port.item_done();
-
                         end
-endtask
+endtask: run_phase
 
 task master_driver::drive(Axi3_trans xtn);
 
-  if (xtn.kind == WRITE) begin
+//  if (xtn.kind == WRITE) begin
 
         q1.push_back(xtn);
         q2.push_back(xtn);
         q3.push_back(xtn);
+        
+        q4.push_back(xtn);
+        q5.push_back(xtn);
 
         fork       //parallel execution construct
                 begin
