@@ -65,37 +65,40 @@ bit RREADY;
 logic RVALID;
 
  //factory registration
- 
-        `uvm_object_utils(Axi3_trans)
-/*
-        `uvm_object_utils_begin(Axi3_trans)
+ //        `uvm_object_utils(Axi3_trans)
+           `uvm_object_utils_begin(Axi3_trans)
 
-                `uvm_field_int(AWID, UVM_ALL_ON)
-                `uvm_field_int(AWADDR, UVM_ALL_ON)
-                `uvm_field_int(AWLEN, UVM_ALL_ON)
-                `uvm_field_int(AWSIZE, UVM_ALL_ON)
-                `uvm_field_int(AWBURST, UVM_ALL_ON)
+               // Write Address Channel
+               `uvm_field_int(AWID,    UVM_ALL_ON)
+               `uvm_field_int(AWADDR,  UVM_ALL_ON)
+               `uvm_field_int(AWLEN,   UVM_ALL_ON)
+               `uvm_field_int(AWSIZE,  UVM_ALL_ON)
+               `uvm_field_int(AWBURST, UVM_ALL_ON)
 
-
-                `uvm_field_int(WID, UVM_ALL_ON)
-                `uvm_field_array_int(WDATA, UVM_ALL_ON)
-                `uvm_field_array_int(WSTRB, UVM_ALL_ON)
-
-                `uvm_field_int(BID, UVM_ALL_ON)
-                `uvm_field_int(BRESP, UVM_ALL_ON)
-
-                `uvm_field_int(ARID, UVM_ALL_ON)
-                `uvm_field_int(ARADDR, UVM_ALL_ON)
-                `uvm_field_int(ARLEN, UVM_ALL_ON)
-                `uvm_field_int(ARSIZE, UVM_ALL_ON)
-                `uvm_field_int(ARBURST, UVM_ALL_ON)
-
-                `uvm_field_int(RID, UVM_ALL_ON)
-                `uvm_field_array_int(RDATA, UVM_ALL_ON)
-                `uvm_field_array_int(RRESP, UVM_ALL_ON)
-
-        `uvm_object_utils_end //instead of writing do_compare, do_copy, do_print etc...
-*/
+               // Write Data Channel
+               `uvm_field_int(WID,     UVM_ALL_ON)
+               `uvm_field_array_int(WDATA, UVM_ALL_ON)
+               `uvm_field_array_int(WSTRB, UVM_ALL_ON)
+               `uvm_field_int(WLAST,   UVM_ALL_ON)
+           
+               // Write Response Channel
+               `uvm_field_int(BID,     UVM_ALL_ON)
+               `uvm_field_int(BRESP,   UVM_ALL_ON)
+           
+               // Read Address Channel
+               `uvm_field_int(ARID,    UVM_ALL_ON)
+               `uvm_field_int(ARADDR,  UVM_ALL_ON)
+               `uvm_field_int(ARLEN,   UVM_ALL_ON)
+               `uvm_field_int(ARSIZE,  UVM_ALL_ON)
+               `uvm_field_int(ARBURST, UVM_ALL_ON)
+           
+               // Read Data Channel
+               `uvm_field_int(RID,     UVM_ALL_ON)
+               `uvm_field_array_int(RDATA, UVM_ALL_ON)
+               `uvm_field_array_int(RRESP, UVM_ALL_ON)
+               `uvm_field_int(RLAST,   UVM_ALL_ON)
+           
+          `uvm_object_utils_end
 
 bit [31:0] waddr[];
 int no_of_wbytes;
@@ -162,8 +165,8 @@ constraint c2 {araddr < 4096;}
 
 extern function new(string name = "Axi3_trans");
 extern function void post_randomize();
-extern function void do_print(uvm_printer printer);
-extern function bit do_compare(uvm_object rhs, uvm_comparer comparer);
+//extern function void do_print(uvm_printer printer);
+//extern function bit do_compare(uvm_object rhs, uvm_comparer comparer);
 
 extern function void cal_addr();
 extern function void cal_raddr();
@@ -324,6 +327,7 @@ function void Axi3_trans::cal_raddr();
 
 endfunction: cal_raddr
 
+/*
 function void Axi3_trans::do_print(uvm_printer printer);
 
     super.do_print(printer);
@@ -422,7 +426,7 @@ function bit Axi3_trans::do_compare(uvm_object rhs, uvm_comparer comparer);
            RRESP   == rhs_.RRESP;
 
 endfunction: do_compare
-
+*/
 //To check:
 /*module tb();
 
