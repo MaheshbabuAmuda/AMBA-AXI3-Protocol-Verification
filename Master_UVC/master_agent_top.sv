@@ -12,17 +12,16 @@ endclass
 
 function master_agent_top::new(string name = "master_agent_top", uvm_component parent);
         super.new(name, parent);
-endfunction
+endfunction: new
 
 function void master_agent_top::build_phase(uvm_phase phase);
         super.build_phase(phase);
 
          // Get environment configuration
     if (!uvm_config_db#(Axi3_env_config)::get(this, "", "Axi3_env_config", env_cfg))
-        begin
-            `uvm_fatal(get_type_name(),"Failed to get Axi3_env_config from config_db")
-        end
-        
+        `uvm_fatal(get_type_name(),"Failed to get Axi3_env_config from config_db")
+
         m_agnth = master_agent::type_id::create("m_agnth", this);
 
-endfunction
+endfunction: build_phase
+~
