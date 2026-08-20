@@ -1,0 +1,261 @@
+class slave_monitor extends uvm_monitor;
+
+        `uvm_component_utils(slave_monitor)
+
+        virtual Axi3_if vif;
+
+        slave_agent_config s_cfg;
+
+        uvm_analysis_port #(Axi3_trans) monitor_port;
+
+        Axi3_trans xtn_wr, xtn_rd, xtn1, xtn2;
+
+        Axi3_trans q1[$], q2[$], q3[$], q4[$], q5[$];
+
+        semaphore sem_Wac = new(1); //write addr channel
+        semaphore sem_Wdc = new(1); //write data channel
+        semaphore sem_Wrc = new(1); //write resp channel
+        semaphore sem_Wddc = new(); //write data dependency channel
+        semaphore sem_Wrdc = new(); //write resp dependency channel
+
+        semaphore sem_Rac = new(1); //read addr channel
+        semaphore sem_Rdc = new(1); //read data channel
+        semaphore sem_Rddc = new(); //read data dependency channel
+
+        extern function new(string name = "slave_monitor", uvm_component parent);
+        extern function void build_phase(uvm_phase phase);
+        extern function void connect_phase(uvm_phase phase);
+        extern task run_phase(uvm_phase phase);
+
+        extern task slv_collect();
+        extern task collect_awaddr(Axi3_trans xtn_wr);
+        extern task collect_wdata(Axi3_trans xtn_wr);
+        extern task collect_bresp(Axi3_trans xtn_wr);
+
+        extern task collect_raddr(Axi3_trans xtn_rd);
+        extern task collect_rdata(Axi3_trans xtn_rd);
+
+        //extern function void report_phase(uvm_phase phase);
+
+endclass
+
+function slave_monitor::new(string name = "slave_monitor", uvm_component parent);
+        super.new(name,parent);
+
+        monitor_port = new("monitor_port", this);
+
+endfunction: new
+
+function void slave_monitor::build_phase(uvm_phase phase);
+        super.build_phase(phase);
+
+        if(!uvm_config_db #(slave_agent_config)::get(this, "" , "slave_agent_config" , s_cfg ))
+        `uvm_fatal("SLAVE_CONFIG", "cannot get(), HAve u set () slave_agent_config ?")
+          
+endfunction: build_phase
+
+function void slave_monitor::connect_phase(uvm_phase phase);
+        super.connect_phase(phase);
+
+        vif = s_cfg.vif;
+
+endfunction: connect_phase
+          
+task slave_monitor::run_phase(uvm_phase phase);
+        super.run_phase(phase);
+
+        forever begin
+                slv_collect();
+        end
+
+endtask: run_phase
+
+task slave_monitor::slv_collect();
+
+        xtn_wr = Axi3_trans::type_id::create("xtn_wr");
+        xtn_rd = Axi3_trans::type_id::create("xtn_rd");
+
+        fork
+                begin
+                        sem_Wac.get(1);
+                        collect_awaddr(xtn_wr);
+                        sem_Wac.put(1);
+                        sem_Wddc.put(1);
+                end
+
+                begin
+                        sem_Wdc.get(1);
+                        sem_Wddc.get(1);
+                        collect_wdata(q1.pop_front());
+                        sem_Wdc.put(1);
+                        sem_Wrdc.put(1);
+                end
+
+                begin
+                        sem_Wrc.get(1);
+                        sem_Wrdc.get(1);
+                        collect_bresp(q2.pop_front());
+                        sem_Wrc.put(1);
+                end
+
+                begin
+                        sem_Rac.get(1);
+                        collect_raddr(xtn_rd);
+                        sem_Rac.put(1);
+                        sem_Rddc.put(1);
+                end
+
+                begin
+                        sem_Rdc.get(1);
+                        sem_Rddc.get(1);
+                        collect_rdata(q3.pop_front());
+                        sem_Rdc.put(1);
+                end
+        join_any
+
+endtask: slv_collect
+
+//===========================================================
+    //Monitor AW  channel
+//===========================================================
+
+task slave_monitor::collect_awaddr(Axi3_trans xtn_wr);
+
+        $display("Monitoring slave AWADDR channel");
+
+        @(vif.slv_mon_cb iff (vif.slv_mon_cb.AWVALID && vif.slv_mon_cb.AWREADY));
+
+        xtn_wr.AWVALID = vif.slv_mon_cb.AWVALID;
+        xtn_wr.AWADDR  = vif.slv_mon_cb.AWADDR;
+        xtn_wr.AWSIZE  = vif.slv_mon_cb.AWSIZE;
+        xtn_wr.AWID    = vif.slv_mon_cb.AWID;
+        xtn_wr.AWLEN   = vif.slv_mon_cb.AWLEN;
+        xtn_wr.AWBURST = vif.slv_mon_cb.AWBURST;
+
+        q1.push_back(xtn_wr);
+        q2.push_back(xtn_wr);
+
+    `uvm_info(get_type_name(),$sformatf("From slv_Mon: Collected AWADDR:\n%s", xtn_wr.sprint()), UVM_MEDIUM)
+
+    $display("End of slave monitor AWADDR channel");
+
+endtask: collect_awaddr
+
+//===========================================================
+    //Monitor W channel
+//===========================================================
+
+task slave_monitor::collect_wdata(Axi3_trans xtn_wr);
+
+        int i;
+
+        $display("Monitoring slave WDATA channel");
+
+        xtn_wr.WDATA = new[xtn_wr.AWLEN + 1];
+        xtn_wr.WSTRB = new[xtn_wr.AWLEN + 1];
+
+        for (i = 0; i <= xtn_wr.AWLEN; i++) begin
+
+        @(vif.slv_mon_cb iff (vif.slv_mon_cb.WVALID && vif.slv_mon_cb.WREADY));
+        //iff -  Wait for a clocking block event and proceed only when both WVALID and WREADY
+        xtn_wr.WVALID   = vif.slv_mon_cb.WVALID;
+        xtn_wr.WREADY   = vif.slv_mon_cb.WREADY;
+        xtn_wr.WID      = vif.slv_mon_cb.WID;
+        xtn_wr.WDATA[i] = vif.slv_mon_cb.WDATA;
+        xtn_wr.WSTRB[i] = vif.slv_mon_cb.WSTRB;
+
+        if (i == xtn_wr.AWLEN)
+            xtn_wr.WLAST = vif.slv_mon_cb.WLAST;
+
+        end
+
+    `uvm_info(get_type_name(), $sformatf("From slv_Mon: Collected WDATA:\n%s", xtn_wr.sprint()), UVM_MEDIUM)
+
+    $display("End of slave monitor WDATA channel");
+
+endtask: collect_wdata
+
+//===========================================================
+    //Monitor B channel
+//===========================================================
+
+task slave_monitor::collect_bresp(Axi3_trans xtn_wr);
+
+        $display("Monitoring slave BRESP channel");
+
+        @(vif.slv_mon_cb iff(vif.slv_mon_cb.BVALID && vif.slv_mon_cb.BREADY));
+
+        xtn_wr.BVALID = vif.slv_mon_cb.BVALID;
+        xtn_wr.BREADY = vif.slv_mon_cb.BREADY;
+        xtn_wr.BID    = vif.slv_mon_cb.BID;
+        xtn_wr.BRESP  = vif.slv_mon_cb.BRESP;
+
+        monitor_port.write(xtn_wr);
+
+   `uvm_info(get_type_name(), $sformatf("Collected BRESP:\n%s", xtn_wr.sprint()), UVM_MEDIUM)
+
+   $display("End of slave monitor BRESP channel");
+
+endtask: collect_bresp
+
+//===========================================================
+    //Monitor AR channel
+//===========================================================
+
+task slave_monitor::collect_raddr(Axi3_trans xtn_rd);
+
+        $display("Monitoring slave ARADDR channel");
+
+        @(vif.slv_mon_cb iff (vif.slv_mon_cb.ARVALID && vif.slv_mon_cb.ARREADY));
+
+        xtn_rd.ARVALID = vif.slv_mon_cb.ARVALID;
+        xtn_rd.ARREADY = vif.slv_mon_cb.ARREADY;
+        xtn_rd.ARADDR  = vif.slv_mon_cb.ARADDR;
+        xtn_rd.ARSIZE  = vif.slv_mon_cb.ARSIZE;
+        xtn_rd.ARID    = vif.slv_mon_cb.ARID;
+        xtn_rd.ARLEN   = vif.slv_mon_cb.ARLEN;
+        xtn_rd.ARBURST = vif.slv_mon_cb.ARBURST;
+
+        q3.push_back(xtn_rd);
+
+   `uvm_info(get_type_name(), $sformatf("From Slv_Mon: Collected ARADDR:\n%s", xtn_rd.sprint()), UVM_MEDIUM)
+
+   $display("End of slave monitor ARADDR channel");
+
+endtask: collect_raddr
+
+//===========================================================
+    //Monitor R channel
+//===========================================================
+
+task slave_monitor::collect_rdata(Axi3_trans xtn_rd);
+
+        int i;
+
+        $display("Monitoring slave RDATA channel");
+
+        xtn_rd.RDATA = new[xtn_rd.ARLEN+1];
+        xtn_rd.RRESP = new[xtn_rd.ARLEN+1];
+
+         for (i = 0; i <= xtn_rd.ARLEN; i++) begin
+
+                @(vif.slv_mon_cb iff (vif.slv_mon_cb.RVALID && vif.slv_mon_cb.RREADY));
+
+                xtn_rd.RID      = vif.slv_mon_cb.RID;
+                xtn_rd.RVALID   = vif.slv_mon_cb.RVALID;
+                xtn_rd.RREADY   = vif.slv_mon_cb.RREADY;
+                xtn_rd.RDATA[i] = vif.slv_mon_cb.RDATA;
+                xtn_rd.RRESP[i] = vif.slv_mon_cb.RRESP;
+
+                if (i == xtn_rd.ARLEN) begin
+                         xtn_rd.RLAST = vif.slv_mon_cb.RLAST;
+                 end
+          end
+
+        monitor_port.write(xtn_rd);
+
+   `uvm_info(get_type_name(), $sformatf("From Slv_Mon: Collected RDATA:\n%s", xtn_rd.sprint()), UVM_MEDIUM)
+
+   $display("End of slave monitor RDATA channel");
+
+endtask: collect_rdata
