@@ -29,13 +29,21 @@ The overall transaction flow is:
 The verification environment covers the major AXI3 transaction scenarios:
 
 **Write Transactions**
+
 Write Address Channel
+
 Write Data Channel
+
 Write Response Channel
+
 AWVALID / AWREADY handshake
+
 WVALID / WREADY handshake
+
 BVALID / BREADY handshake
+
 Write response checking
+
 Write strobes (WSTRB)
 
 **Read Transactions**
