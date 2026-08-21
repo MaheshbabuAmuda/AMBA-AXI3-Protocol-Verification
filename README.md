@@ -47,67 +47,89 @@ Write response checking
 Write strobes (WSTRB)
 
 **Read Transactions**
+
 Read Address Channel
+
 Read Data Channel
+
 ARVALID / ARREADY handshake
+
 RVALID / RREADY handshake
+
 Read response checking
+
 Read data verification
 
 **Burst Types**
+
 FIXED burst
+
 INCR burst
+
 WRAP burst
 
 **Transfer Types**
-Aligned transfers
-Unaligned transfers
-Narrow transfers
-Multiple-beat burst transfers
 
-**Transaction Handling** 
-Constrained-random transactions
-Multiple outstanding transactions
-Transaction IDs
-Dynamic WDATA and RDATA
-Dynamic WSTRB
-Burst address calculation
-Wrap boundary calculation
+Aligned transfers
+
+Unaligned transfers
+
+Narrow transfers
+
+Multiple-beat burst transfers
 
 <img width="556" height="252" alt="image" src="https://github.com/user-attachments/assets/9270b891-386f-48d9-a0c8-4c96a7a4565d" />
 
+
 🔍 **Scoreboard**
+
 Master Monitor
+
       │
       ▼
+      
 Analysis FIFO
+
       │
       ▼
+      
 Scoreboard
+
       ▲
       │
+      
 Analysis FIFO
+
       ▲
       │
+      
 Slave Monitor
 
 
 ✅ **Verification Results**
+
 The final verification environment achieved:
 
 **🛡️ Assertions**
+
 Functional / Covergroup Coverage : 98.99%
+
 Assertion Coverage               : 100%
+
 Assertion Failures               : 0
 
 **Scoreboard Results**
+
 Total Transactions Compared : 92
+
 Matched                     : 92
+
 Mismatched                  : 0
+
 Match Rate                  : 100%
 
-**UVM Report**
-UVM_ERROR  : 0
+**UVM Report**:
+UVM_ERROR  : 0,
 UVM_FATAL  : 0
 
 These results demonstrate successful end-to-end transaction generation, driving, monitoring, comparison, and protocol checking.
@@ -118,6 +140,7 @@ These results demonstrate successful end-to-end transaction generation, driving,
 👨‍💻 Author
 
 Mahesh Amudha
+
 Aspiring ASIC Design Verification Engineer
 
 Focus Areas:
